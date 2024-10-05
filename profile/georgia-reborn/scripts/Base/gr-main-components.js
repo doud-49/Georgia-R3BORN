@@ -4598,12 +4598,14 @@ class WaveformBar {
 	 * @returns {Promise<void>} A promise that resolves when the analysis has finished.
 	 */
 	async analyzeData(handle, waveformBarFolder, waveformBarFile, sourceFile = handle ? handle.Path : null) {
-		if (!IsFolder(waveformBarFolder)) { _CreateFolder(waveformBarFolder); }
 		let profiler;
 		let cmd;
 		// Change to track folder since ffprobe has stupid escape rules which are impossible to apply right with amovie input mode.
 		let handleFileName = sourceFile.split('\\').pop();
 		const handleFolder = sourceFile.replace(handleFileName, '');
+
+		// waveformBarFolder Creation only for AllowedFile And not ZippedFile
+		if (!IsFolder(waveformBarFolder) && this.isAllowedFile && !this.isZippedFile) { _CreateFolder(waveformBarFolder); }
 
 		if (this.isAllowedFile && !this.fallbackMode.analysis && this.analysis.binaryMode === 'audiowaveform') {
 			if (this.profile) {
@@ -4926,84 +4928,82 @@ class WaveformBar {
 	 */
 	async on_playback_new_track(handle = fb.GetNowPlaying(), isRetry = false) {
 		if (['progressbar', 'peakmeterbar'].includes(grSet.seekbar) || !this.active) { return; }
-			this.reset();
-			if (handle) {
-				this.checkAllowedFile(handle);
-				let analysis = false;
-				const { waveformBarFolder, waveformBarFile, sourceFile } = this.getPaths(handle);
-
-				// Uncompressed file -> Compressed UTF8 file -> Compressed UTF16 file -> Analyze
-				if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.json`)) {
-					this.current = _JsonParseFile(`${waveformBarFile}.ff.json`, this.codePage) || [];
-					if (!this.verifyData(handle, `${waveformBarFile}.ff.json`, isRetry)) { return; };
-				}
-				else if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.lz`)) {
-					let str = Open(`${waveformBarFile}.ff.lz`, this.codePage) || '';
-					str = LZUTF8.decompress(str, { inputEncoding: 'Base64' }) || null;
-					this.current = str ? JSON.parse(str) || [] : [];
-					if (!this.verifyData(handle, `${waveformBarFile}.ff.lz`, isRetry)) { return; };
-				}
-				else if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.lz16`)) {
-					let str = Open(`${waveformBarFile}.ff.lz16`, this.codePageV2) || '';
-					str = LZString.decompressFromUTF16(str) || null;
-					this.current = str ? JSON.parse(str) || [] : [];
-					if (!this.verifyData(handle, `${waveformBarFile}.ff.lz16`, isRetry)) { return; };
-				}
-				else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.json`)) {
-					this.current = _JsonParseFile(`${waveformBarFile}.aw.json`, this.codePage) || [];
-					if (!this.verifyData(handle, `${waveformBarFile}.aw.json`, isRetry)) { return; };
-				}
-				else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.lz`)) {
-					let str = Open(`${waveformBarFile}.aw.lz`, this.codePage) || '';
-					str = LZUTF8.decompress(str, { inputEncoding: 'Base64' }) || null;
-					this.current = str ? JSON.parse(str) || [] : [];
-					if (!this.verifyData(handle, `${waveformBarFile}.aw.lz`, isRetry)) { return; };
-				}
-				else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.lz16`)) {
-					let str = Open(`${waveformBarFile}.aw.lz16`, this.codePageV2) || '';
-					str = LZString.decompressFromUTF16(str) || null;
-					this.current = str ? JSON.parse(str) || [] : [];
-					if (!this.verifyData(handle, `${waveformBarFile}.aw.lz16`, isRetry)) { return; };
-				}
-				else if (this.analysis.autoAnalysis && IsFile(sourceFile)) {
-					if (this.analysis.visualizerFallbackAnalysis) {
-						this.fallbackMode.analysis = this.fallbackMode.paint = true;
-						await this.analyzeData(handle, waveformBarFolder, waveformBarFile, sourceFile);
-						// Calculate waveform on the fly
-						this.normalizePoints();
-						// Set animation using BPM if possible
-						if (this.preset.animate && this.preset.useBPM) { this.bpmSteps(handle); }
-						// Update time if needed
-						if (fb.IsPlaying) { this.time = fb.PlaybackTime; }
-					}
-					this.throttlePaint(true);
-					if (this.analysis.visualizerFallbackAnalysis) {
-						this.fallbackMode.analysis = false;
-					}
-
-					if (!this.isZippedFile) {
-						await this.analyzeData(handle, waveformBarFolder, waveformBarFile, sourceFile);
-						if (!this.verifyData(handle, undefined, isRetry)) { return; };
-						this.fallbackMode.analysis = this.fallbackMode.paint = false;
-						analysis = true;
-					}
-					else {
-						this.fallbackMode.analysis = this.fallbackMode.paint = true;
-						analysis = false;
-					}
-				}
-
-				if (!analysis) { this.isFallback = false; } // Allow reading data from files, even if track is incompatible.
-				// Calculate waveform on the fly
-				this.normalizePoints(this.analysis.binaryMode !== 'visualizer' && this.ui.sizeNormalizeWidth);
+		this.reset();
+		if (handle) {
+			this.checkAllowedFile(handle);
+			let analysis = false;
+			const { waveformBarFolder, waveformBarFile, sourceFile } = this.getPaths(handle);
+			// Uncompressed file -> Compressed UTF8 file -> Compressed UTF16 file -> Analyze
+			if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.json`)) {
+				this.current = _JsonParseFile(`${waveformBarFile}.ff.json`, this.codePage) || [];
+				if (!this.verifyData(handle, `${waveformBarFile}.ff.json`, isRetry)) { return; };
 			}
-			this.resetAnimation();
-			// Set animation using BPM if possible
-			if (this.preset.animate && this.preset.useBPM) { this.bpmSteps(handle); }
-			// Update time if needed
-			if (fb.IsPlaying) { this.time = fb.PlaybackTime; }
-			// And paint
-			this.throttlePaint();
+			else if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.lz`)) {
+				let str = Open(`${waveformBarFile}.ff.lz`, this.codePage) || '';
+				str = LZUTF8.decompress(str, { inputEncoding: 'Base64' }) || null;
+				this.current = str ? JSON.parse(str) || [] : [];
+				if (!this.verifyData(handle, `${waveformBarFile}.ff.lz`, isRetry)) { return; };
+			}
+			else if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.lz16`)) {
+				let str = Open(`${waveformBarFile}.ff.lz16`, this.codePageV2) || '';
+				str = LZString.decompressFromUTF16(str) || null;
+				this.current = str ? JSON.parse(str) || [] : [];
+				if (!this.verifyData(handle, `${waveformBarFile}.ff.lz16`, isRetry)) { return; };
+			}
+			else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.json`)) {
+				this.current = _JsonParseFile(`${waveformBarFile}.aw.json`, this.codePage) || [];
+				if (!this.verifyData(handle, `${waveformBarFile}.aw.json`, isRetry)) { return; };
+			}
+			else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.lz`)) {
+				let str = Open(`${waveformBarFile}.aw.lz`, this.codePage) || '';
+				str = LZUTF8.decompress(str, { inputEncoding: 'Base64' }) || null;
+				this.current = str ? JSON.parse(str) || [] : [];
+				if (!this.verifyData(handle, `${waveformBarFile}.aw.lz`, isRetry)) { return; };
+			}
+			else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.lz16`)) {
+				let str = Open(`${waveformBarFile}.aw.lz16`, this.codePageV2) || '';
+				str = LZString.decompressFromUTF16(str) || null;
+				this.current = str ? JSON.parse(str) || [] : [];
+				if (!this.verifyData(handle, `${waveformBarFile}.aw.lz16`, isRetry)) { return; };
+			}
+			else if (this.analysis.autoAnalysis && IsFile(sourceFile)) {
+				if (this.analysis.visualizerFallbackAnalysis) {
+					this.fallbackMode.analysis = this.fallbackMode.paint = true;
+					await this.analyzeData(handle, waveformBarFolder, waveformBarFile, sourceFile);
+					// Calculate waveform on the fly
+					this.normalizePoints();
+					// Set animation using BPM if possible
+					if (this.preset.animate && this.preset.useBPM) { this.bpmSteps(handle); }
+					// Update time if needed
+					if (fb.IsPlaying) { this.time = fb.PlaybackTime; }
+				}
+				this.throttlePaint(true);
+				if (this.analysis.visualizerFallbackAnalysis) {
+					this.fallbackMode.analysis = false;
+				}
+				// No need to check the data of a zipped file
+				if (!this.isZippedFile) {
+					await this.analyzeData(handle, waveformBarFolder, waveformBarFile, sourceFile);
+					if (!this.verifyData(handle, undefined, isRetry)) { return; };
+					this.fallbackMode.analysis = this.fallbackMode.paint = false;
+					analysis = true;
+				}
+				else {
+					this.fallbackMode.analysis = this.fallbackMode.paint = true;
+					analysis = false;
+				}
+			}
+			if (!analysis) { this.isFallback = false; } // Allow reading data from files, even if track is incompatible.
+			// Calculate waveform on the fly
+			this.normalizePoints(this.analysis.binaryMode !== 'visualizer' && this.ui.sizeNormalizeWidth);
+		}
+		this.resetAnimation();
+		// Set animation using BPM if possible
+		if (this.preset.animate && this.preset.useBPM) { this.bpmSteps(handle); }
+		// Update time if needed
+		if (fb.IsPlaying) { this.time = fb.PlaybackTime; }
+		// And paint
+		this.throttlePaint();
 	}
 
 	/**
