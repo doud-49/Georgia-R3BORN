@@ -4932,40 +4932,38 @@ class WaveformBar {
 				let analysis = false;
 				const { waveformBarFolder, waveformBarFile, sourceFile } = this.getPaths(handle);
 
-				if (this.isAllowedFile) {
-					// Uncompressed file -> Compressed UTF8 file -> Compressed UTF16 file -> Analyze
-					if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.json`)) {
-						this.current = _JsonParseFile(`${waveformBarFile}.ff.json`, this.codePage) || [];
-						if (!this.verifyData(handle, `${waveformBarFile}.ff.json`, isRetry)) { return; };
-					}
-					else if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.lz`)) {
-						let str = Open(`${waveformBarFile}.ff.lz`, this.codePage) || '';
-						str = LZUTF8.decompress(str, { inputEncoding: 'Base64' }) || null;
-						this.current = str ? JSON.parse(str) || [] : [];
-						if (!this.verifyData(handle, `${waveformBarFile}.ff.lz`, isRetry)) { return; };
-					}
-					else if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.lz16`)) {
-						let str = Open(`${waveformBarFile}.ff.lz16`, this.codePageV2) || '';
-						str = LZString.decompressFromUTF16(str) || null;
-						this.current = str ? JSON.parse(str) || [] : [];
-						if (!this.verifyData(handle, `${waveformBarFile}.ff.lz16`, isRetry)) { return; };
-					}
-					else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.json`)) {
-						this.current = _JsonParseFile(`${waveformBarFile}.aw.json`, this.codePage) || [];
-						if (!this.verifyData(handle, `${waveformBarFile}.aw.json`, isRetry)) { return; };
-					}
-					else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.lz`)) {
-						let str = Open(`${waveformBarFile}.aw.lz`, this.codePage) || '';
-						str = LZUTF8.decompress(str, { inputEncoding: 'Base64' }) || null;
-						this.current = str ? JSON.parse(str) || [] : [];
-						if (!this.verifyData(handle, `${waveformBarFile}.aw.lz`, isRetry)) { return; };
-					}
-					else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.lz16`)) {
-						let str = Open(`${waveformBarFile}.aw.lz16`, this.codePageV2) || '';
-						str = LZString.decompressFromUTF16(str) || null;
-						this.current = str ? JSON.parse(str) || [] : [];
-						if (!this.verifyData(handle, `${waveformBarFile}.aw.lz16`, isRetry)) { return; };
-					}
+				// Uncompressed file -> Compressed UTF8 file -> Compressed UTF16 file -> Analyze
+				if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.json`)) {
+					this.current = _JsonParseFile(`${waveformBarFile}.ff.json`, this.codePage) || [];
+					if (!this.verifyData(handle, `${waveformBarFile}.ff.json`, isRetry)) { return; };
+				}
+				else if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.lz`)) {
+					let str = Open(`${waveformBarFile}.ff.lz`, this.codePage) || '';
+					str = LZUTF8.decompress(str, { inputEncoding: 'Base64' }) || null;
+					this.current = str ? JSON.parse(str) || [] : [];
+					if (!this.verifyData(handle, `${waveformBarFile}.ff.lz`, isRetry)) { return; };
+				}
+				else if (this.analysis.binaryMode === 'ffprobe' && IsFile(`${waveformBarFile}.ff.lz16`)) {
+					let str = Open(`${waveformBarFile}.ff.lz16`, this.codePageV2) || '';
+					str = LZString.decompressFromUTF16(str) || null;
+					this.current = str ? JSON.parse(str) || [] : [];
+					if (!this.verifyData(handle, `${waveformBarFile}.ff.lz16`, isRetry)) { return; };
+				}
+				else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.json`)) {
+					this.current = _JsonParseFile(`${waveformBarFile}.aw.json`, this.codePage) || [];
+					if (!this.verifyData(handle, `${waveformBarFile}.aw.json`, isRetry)) { return; };
+				}
+				else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.lz`)) {
+					let str = Open(`${waveformBarFile}.aw.lz`, this.codePage) || '';
+					str = LZUTF8.decompress(str, { inputEncoding: 'Base64' }) || null;
+					this.current = str ? JSON.parse(str) || [] : [];
+					if (!this.verifyData(handle, `${waveformBarFile}.aw.lz`, isRetry)) { return; };
+				}
+				else if (this.analysis.binaryMode === 'audiowaveform' && IsFile(`${waveformBarFile}.aw.lz16`)) {
+					let str = Open(`${waveformBarFile}.aw.lz16`, this.codePageV2) || '';
+					str = LZString.decompressFromUTF16(str) || null;
+					this.current = str ? JSON.parse(str) || [] : [];
+					if (!this.verifyData(handle, `${waveformBarFile}.aw.lz16`, isRetry)) { return; };
 				}
 				else if (this.analysis.autoAnalysis && IsFile(sourceFile)) {
 					if (this.analysis.visualizerFallbackAnalysis) {
